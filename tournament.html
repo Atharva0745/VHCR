@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Double Elimination Tournament Bracket</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .event-info {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-item input {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            outline: none;
+        }
+
+        .info-item input:focus {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #ffd700;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #1e3c72;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .bracket-container {
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+            max-width: 100%;
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        .bracket-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(5px);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 1.8em;
+            margin-bottom: 30px;
+            color: #ffd700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ffd700, transparent);
+        }
+
+        .rounds-container {
+            display: flex;
+            gap: 80px;
+            justify-content: center;
+            position: relative;
+        }
+
+        .round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            position: relative;
+            min-height: 400px;
+        }
+
+        .round-label {
+            text-align: center;
+            font-size: 0.9em;
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .match {
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #1a3c5e 0%, #2a4d6e 100%);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            width: 260px;
+            position: relative;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .match:hover {
+            transform: scale(1.02);
+            border-color: #ffd700;
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .match-header {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 5px 10px;
+            font-size: 0.75em;
+            text-align: center;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .match-top, .match-bottom {
+            display: flex;
+            align-items: center;
+            height: 40px;
+            position: relative;
+        }
+
+        .match-top {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .match-top.winner, .match-bottom.winner {
+            background: rgba(255, 215, 0, 0.15);
+        }
+
+        .seed {
+            background: rgba(0, 0, 0, 0.3);
+            color: #ffd700;
+            width: 35px;
+            text-align: center;
+            font-size: 0.85em;
+            line-height: 40px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .player-input {
+            flex-grow: 1;
+            border: none;
+            background: transparent;
+            color: #fff;
+            padding: 0 12px;
+            font-family: inherit;
+            font-size: 1em;
+            outline: none;
+            height: 100%;
+        }
+
+        .player-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+            font-style: italic;
+        }
+
+        .player-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .score-input {
+            width: 50px;
+            border: none;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #1e3c72;
+            text-align: center;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 1em;
+            outline: none;
+            padding: 0;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .score-input:focus {
+            background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+        }
+
+        /* SVG Connectors */
+        .connector-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .connector-line {
+            fill: none;
+            stroke: #ffd700;
+            stroke-width: 2;
+            opacity: 0.6;
+        }
+
+        .connector-arrow {
+            fill: #ffd700;
+            opacity: 0.8;
+        }
+
+        /* Simple Arrow for matches */
+        .arrow {
+            position: absolute;
+            right: -60px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 2px;
+            background: #ffd700;
+            z-index: 1;
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 10px solid #ffd700;
+        }
+
+        .grand-final {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%);
+            border-radius: 15px;
+            padding: 30px;
+            border: 3px solid #ffd700;
+        }
+
+        .grand-final .match {
+            width: 320px;
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+
+        .champion-display {
+            margin-top: 30px;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border-radius: 15px;
+            color: #1e3c72;
+            min-width: 320px;
+        }
+
+        .champion-display h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .champion-name {
+            font-size: 2em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .notes-section {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .rules-section {
+            margin-top: 40px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.1) 100%);
+            border: 3px solid #ffd700;
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+        }
+
+        .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .rule-card {
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.9) 0%, rgba(42, 77, 110, 0.9) 100%);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .rule-card:hover {
+            transform: translateY(-5px);
+            border-color: #ffd700;
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        }
+
+        .rule-icon {
+            font-size: 3em;
+            text-align: center;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        .rule-card h3 {
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .rule-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .rule-card li {
+            margin-bottom: 12px;
+            padding-left: 25px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .rule-card li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .rule-card strong {
+            color: #ffed4e;
+            font-weight: bold;
+        }
+
+        .additional-notes {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .additional-notes h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .notes-section h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .notes-section textarea {
+            width: 100%;
+            min-height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 0.95em;
+            resize: vertical;
+        }
+
+        .notes-section textarea:focus {
+            outline: none;
+            border-color: #ffd700;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .additional-notes textarea {
+            width: 100%;
+            min-height: 100px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            padding: 15px;
+            font-family: inherit;
+            font-size: 0.95em;
+            resize: vertical;
+        }
+
+        .additional-notes textarea:focus {
+            outline: none;
+            border-color: #ffd700;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        @media (max-width: 1200px) {
+            .rounds-container {
+                gap: 60px;
+            }
+            .arrow {
+                width: 40px;
+                right: -50px;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .controls, .btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏆 Tournament Bracket</h1>
+        <div class="event-info">
+            <div class="info-item">
+                <label>📅 Date:</label>
+                <input type="date" id="eventDate" value="2026-02-03">
+            </div>
+            <div class="info-item">
+                <label>📍 Venue:</label>
+                <input type="text" id="eventVenue" placeholder="Enter venue" value="">
+            </div>
+            <div class="info-item">
+                <label>🎮 Game/Sport:</label>
+                <input type="text" id="eventGame" placeholder="Enter game/sport" value="">
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="saveProgress()">💾 Save Progress</button>
+        <button class="btn" onclick="loadProgress()">📂 Load Progress</button>
+        <button class="btn btn-secondary" onclick="resetBracket()">🔄 Reset Bracket</button>
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ Print Bracket</button>
+    </div>
+
+    <div class="bracket-container">
+        <!-- Winner's Bracket -->
+        <div class="bracket-section">
+            <h2 class="section-title">⭐ Winner's Bracket</h2>
+            <div class="rounds-container">
+                <!-- Round 1 -->
+                <div class="round">
+                    <div class="round-label">Round 1</div>
+                    <div class="match">
+                        <div class="match-header">Match 1</div>
+                        <div class="match-top">
+                            <span class="seed">4</span>
+                            <input type="text" class="player-input" value="Mishra" data-match="1" data-slot="top">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed">5</span>
+                            <input type="text" class="player-input" value="Wasi" data-match="1" data-slot="bottom">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+
+                    <div class="match">
+                        <div class="match-header">Match 2</div>
+                        <div class="match-top">
+                            <span class="seed">2</span>
+                            <input type="text" class="player-input" value="Vedant" data-match="2" data-slot="top">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed">7</span>
+                            <input type="text" class="player-input" value="Vishal" data-match="2" data-slot="bottom">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+
+                    <div class="match">
+                        <div class="match-header">Match 3</div>
+                        <div class="match-top">
+                            <span class="seed">3</span>
+                            <input type="text" class="player-input" value="Sameer" data-match="3" data-slot="top">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed">6</span>
+                            <input type="text" class="player-input" value="Prajyot" data-match="3" data-slot="bottom">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+
+                <!-- Round 2 -->
+                <div class="round">
+                    <div class="round-label">Semi-Finals</div>
+                    <div class="match">
+                        <div class="match-header">Match 4</div>
+                        <div class="match-top">
+                            <span class="seed">1</span>
+                            <input type="text" class="player-input" value="Atharva" data-match="4" data-slot="top">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 1" data-match="4" data-slot="bottom" data-source="1">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+
+                    <div class="match">
+                        <div class="match-header">Match 5</div>
+                        <div class="match-top">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 2" data-match="5" data-slot="top" data-source="2">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 3" data-match="5" data-slot="bottom" data-source="3">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+
+                <!-- Round 3 -->
+                <div class="round">
+                    <div class="round-label">Winners Final</div>
+                    <div class="match">
+                        <div class="match-header">Match 6</div>
+                        <div class="match-top">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 4" data-match="6" data-slot="top" data-source="4">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 5" data-match="6" data-slot="bottom" data-source="5">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loser's Bracket -->
+        <div class="bracket-section">
+            <h2 class="section-title">💔 Loser's Bracket</h2>
+            <div class="rounds-container">
+                <!-- Loser Round 1 -->
+                <div class="round">
+                    <div class="round-label">Loser R1</div>
+                    <div class="match">
+                        <div class="match-header">Match 7</div>
+                        <div class="match-top">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Loser of Match 1" data-match="7" data-slot="top" data-source-loser="1">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Loser of Match 4" data-match="7" data-slot="bottom" data-source-loser="4">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+
+                    <div class="match">
+                        <div class="match-header">Match 8</div>
+                        <div class="match-top">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Loser of Match 2" data-match="8" data-slot="top" data-source-loser="2">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Loser of Match 3" data-match="8" data-slot="bottom" data-source-loser="3">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+
+                <!-- Loser Round 2 -->
+                <div class="round">
+                    <div class="round-label">Loser R2</div>
+                    <div class="match">
+                        <div class="match-header">Match 9</div>
+                        <div class="match-top">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Loser of Match 5" data-match="9" data-slot="top" data-source-loser="5">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 7" data-match="9" data-slot="bottom" data-source="7">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+
+                <!-- Loser Round 3 -->
+                <div class="round">
+                    <div class="round-label">Loser R3</div>
+                    <div class="match">
+                        <div class="match-header">Match 11</div>
+                        <div class="match-top">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Loser of Match 6" data-match="11" data-slot="top" data-source-loser="6">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 9" data-match="11" data-slot="bottom" data-source="9">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+
+                <!-- Loser Round 4 -->
+                <div class="round">
+                    <div class="round-label">Loser Final</div>
+                    <div class="match">
+                        <div class="match-header">Match 10</div>
+                        <div class="match-top">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 8" data-match="10" data-slot="top" data-source="8">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="match-bottom">
+                            <span class="seed"></span>
+                            <input type="text" class="player-input" placeholder="Winner of Match 11" data-match="10" data-slot="bottom" data-source="11">
+                            <input type="number" class="score-input" value="" placeholder="0">
+                        </div>
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grand Final -->
+        <div class="grand-final">
+            <h2 class="section-title">🏆 Grand Final</h2>
+            <div class="match">
+                <div class="match-header">Championship Match</div>
+                <div class="match-top">
+                    <span class="seed"></span>
+                    <input type="text" class="player-input" placeholder="Winner of Match 6" data-match="final" data-slot="top" data-source="6">
+                    <input type="number" class="score-input" value="" placeholder="0">
+                </div>
+                <div class="match-bottom">
+                    <span class="seed"></span>
+                    <input type="text" class="player-input" placeholder="Winner of Match 10" data-match="final" data-slot="bottom" data-source="10">
+                    <input type="number" class="score-input" value="" placeholder="0">
+                </div>
+            </div>
+
+            <div class="champion-display" id="championDisplay" style="display: none;">
+                <h3>🎉 Champion</h3>
+                <div class="champion-name" id="championName">TBD</div>
+            </div>
+        </div>
+
+        <!-- Rules Section -->
+        <div class="rules-section">
+            <h2 class="section-title" style="margin-bottom: 25px;">📋 Official Tournament Rules</h2>
+            
+            <div class="rules-grid">
+                <div class="rule-card">
+                    <div class="rule-icon">🎴</div>
+                    <h3>Deck Requirements</h3>
+                    <ul>
+                        <li><strong>3 Decks Required:</strong> Each player must prepare exactly 3 different decks</li>
+                        <li><strong>No Deck Repetition:</strong> Once a deck is used in a match, it cannot be used again in the same series</li>
+                        <li><strong>Minimum Difference:</strong> At least 4 cards must be different between all 3 decks</li>
+                        <li><strong>Plan Carefully:</strong> Choose your deck order strategically throughout the tournament</li>
+                    </ul>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-icon">✅</div>
+                    <h3>Deck Verification</h3>
+                    <ul>
+                        <li><strong>Standard Verification:</strong> All player decks must be verified by Prajyot before the tournament begins</li>
+                        <li><strong>Special Case:</strong> Prajyot's decks will be verified by Vedant to ensure fairness</li>
+                        <li><strong>Verification Includes:</strong> Card count, 4-card difference rule, and deck legality</li>
+                        <li><strong>Deadline:</strong> All decks must be submitted and verified before Round 1 starts</li>
+                    </ul>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-icon">🏆</div>
+                    <h3>Match Format</h3>
+                    <ul>
+                        <li><strong>Best of 3:</strong> Each match is best of 3 games</li>
+                        <li><strong>Different Decks:</strong> Must use a different deck for each game in a match</li>
+                        <li><strong>Winners Bracket:</strong> Win and advance, lose and drop to Losers Bracket</li>
+                        <li><strong>Losers Bracket:</strong> Win and continue, lose and you're eliminated</li>
+                        <li><strong>Grand Final:</strong> Winner of Winners Bracket vs Winner of Losers Bracket</li>
+                    </ul>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-icon">⚠️</div>
+                    <h3>Important Notes</h3>
+                    <ul>
+                        <li><strong>Deck Submission:</strong> Submit all 3 decks before tournament start</li>
+                        <li><strong>No Changes:</strong> Decks cannot be modified once verified</li>
+                        <li><strong>Deck Declaration:</strong> Declare which deck you're using before each game</li>
+                        <li><strong>Fair Play:</strong> Any rule violations may result in match forfeiture</li>
+                        <li><strong>Card Change Rule:</strong> Any player who is not playing that match can pay ₹10 to change one card of a player who is playing the match. After the card is changed, the deck must be checked again to make sure it is correct.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="additional-notes">
+                <h3>📝 Additional Tournament Notes</h3>
+                <textarea id="tournamentNotes" placeholder="Add schedule, prize information, or any other notes here..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-save functionality
+        let autoSaveTimer;
+
+        function setupAutoSave() {
+            document.querySelectorAll('input, textarea').forEach(element => {
+                element.addEventListener('input', () => {
+                    clearTimeout(autoSaveTimer);
+                    autoSaveTimer = setTimeout(saveProgress, 2000);
+                });
+            });
+        }
+
+        function saveProgress() {
+            const data = {
+                eventDate: document.getElementById('eventDate').value,
+                eventVenue: document.getElementById('eventVenue').value,
+                eventGame: document.getElementById('eventGame').value,
+                notes: document.getElementById('tournamentNotes').value,
+                matches: {}
+            };
+
+            document.querySelectorAll('.player-input').forEach(input => {
+                const match = input.getAttribute('data-match');
+                const slot = input.getAttribute('data-slot');
+                if (match && slot) {
+                    if (!data.matches[match]) data.matches[match] = {};
+                    data.matches[match][slot] = input.value;
+                }
+            });
+
+            document.querySelectorAll('.score-input').forEach((input, index) => {
+                data[`score_${index}`] = input.value;
+            });
+
+            localStorage.setItem('tournamentData', JSON.stringify(data));
+            showNotification('✅ Progress saved!');
+        }
+
+        function loadProgress() {
+            const data = JSON.parse(localStorage.getItem('tournamentData'));
+            if (!data) {
+                showNotification('❌ No saved data found');
+                return;
+            }
+
+            document.getElementById('eventDate').value = data.eventDate || '';
+            document.getElementById('eventVenue').value = data.eventVenue || '';
+            document.getElementById('eventGame').value = data.eventGame || '';
+            document.getElementById('tournamentNotes').value = data.notes || '';
+
+            document.querySelectorAll('.player-input').forEach(input => {
+                const match = input.getAttribute('data-match');
+                const slot = input.getAttribute('data-slot');
+                if (match && slot && data.matches[match] && data.matches[match][slot]) {
+                    input.value = data.matches[match][slot];
+                }
+            });
+
+            document.querySelectorAll('.score-input').forEach((input, index) => {
+                if (data[`score_${index}`]) {
+                    input.value = data[`score_${index}`];
+                }
+            });
+
+            showNotification('✅ Progress loaded!');
+            updateChampion();
+        }
+
+        function resetBracket() {
+            if (confirm('Are you sure you want to reset the entire bracket? This cannot be undone.')) {
+                document.querySelectorAll('.player-input').forEach(input => {
+                    if (!input.value.match(/^(Mishra|Wasi|Vedant|Vishal|Sameer|Prajyot|Atharva)$/)) {
+                        input.value = '';
+                    }
+                });
+                document.querySelectorAll('.score-input').forEach(input => input.value = '');
+                document.getElementById('championDisplay').style.display = 'none';
+                showNotification('🔄 Bracket reset!');
+            }
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+                color: #1e3c72;
+                padding: 15px 25px;
+                border-radius: 10px;
+                font-weight: bold;
+                z-index: 9999;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                animation: slideIn 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
+        // Update champion display
+        function updateChampion() {
+            const finalMatch = document.querySelector('[data-match="final"]');
+            if (!finalMatch) return;
+
+            const scores = finalMatch.closest('.match').querySelectorAll('.score-input');
+            const players = finalMatch.closest('.match').querySelectorAll('.player-input');
+
+            if (scores[0].value && scores[1].value && players[0].value && players[1].value) {
+                const score1 = parseInt(scores[0].value) || 0;
+                const score2 = parseInt(scores[1].value) || 0;
+
+                if (score1 !== score2) {
+                    const championName = score1 > score2 ? players[0].value : players[1].value;
+                    document.getElementById('championName').textContent = championName;
+                    document.getElementById('championDisplay').style.display = 'block';
+                }
+            }
+        }
+
+        // Highlight winner
+        document.querySelectorAll('.score-input').forEach((input, index, all) => {
+            input.addEventListener('input', function() {
+                const match = this.closest('.match');
+                const scores = match.querySelectorAll('.score-input');
+                const rows = match.querySelectorAll('.match-top, .match-bottom');
+
+                rows.forEach(row => row.classList.remove('winner'));
+
+                if (scores[0].value && scores[1].value) {
+                    const score1 = parseInt(scores[0].value) || 0;
+                    const score2 = parseInt(scores[1].value) || 0;
+
+                    if (score1 > score2) {
+                        rows[0].classList.add('winner');
+                    } else if (score2 > score1) {
+                        rows[1].classList.add('winner');
+                    }
+                }
+
+                updateChampion();
+            });
+        });
+
+        // Initialize
+        setupAutoSave();
+        
+        // Load on page load
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('tournamentData');
+            if (saved) {
+                loadProgress();
+            }
+        });
+
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
